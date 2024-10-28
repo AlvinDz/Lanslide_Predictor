@@ -56,8 +56,8 @@ now = datetime.now()
 def write_csv(var1, var2, var3, var4, node):
     with open(database_local.csv, 'w', newline='') as csvfile:
         field = ['date', 'vibration', 'inclination', 'humidity', 'node']
-        variables = [
-            [now.strftime("%d/%m/%Y %H:%M:%S"), var1, var2, var3, var4, node]]
+        variables = [['date', 'vibration', 'inclination', 'humidity', 'node'],
+                     [now.strftime("%d/%m/%Y %H:%M:%S"), var1, var2, var3, var4, node]]
         write = csv.writer(csvfile, fieldnames=field)
         write.writeheader()
         write.writerows(variables)
