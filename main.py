@@ -50,7 +50,7 @@ siaga2 = False
 awas3 = False
 siaga3 = False
 
-now = datetime.now()
+now = dt.now()
 
 
 def write_csv(var1, var2, var3, var4, node):
