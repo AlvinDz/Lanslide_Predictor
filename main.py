@@ -104,8 +104,7 @@ def predict():
     value1 = probability[0, 1]
     value2 = probability[1, 1]
     value3 = probability[2, 1]
-    print(f"Probabilitas 1 : {value1}  Probabilitas 2 : {
-          value2}  Probabilitas 3 : {value3}  ")
+    print(f"Probabilitas 1 : {value1}  Probabilitas 2 : {value2}  Probabilitas 3 : {value3}")
     if value1 > 0.75 and value1 <= 1:
         status1 = "AWAS"
         if not awas1:
