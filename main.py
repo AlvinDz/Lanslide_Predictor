@@ -1,5 +1,6 @@
 import requests
-import datetime as dt
+import datetime
+from datetime import datetime as dt
 import os
 import csv
 import warnings
@@ -10,6 +11,7 @@ import joblib
 import json
 print(f"\n\n========== PROGRAM DIMULAI ==========")
 
+print('variable humidity tertukar dengan precipitation!')
 
 warnings.filterwarnings("ignore", category=UserWarning)
 model = joblib.load("Land_Slide_Model_Predictor.pkl")
@@ -18,8 +20,6 @@ app_id = "a26baac9-bd90-4613-ad40-d3ea16e844de"
 rest_api_key = "YzMzODY2MjUtZTNjYS00YzdhLTkwYmItZjY4NjY5MjdjMTll"
 
 ser = serial.Serial('/dev/ttyUSB0', baudrate=115200, timeout=1)
-
-# csv_path =
 
 # TITIK 1
 nama1 = "Lokasi 1"
@@ -50,18 +50,34 @@ siaga2 = False
 awas3 = False
 siaga3 = False
 
+st1 = ''
+st2 = ''
+st3 = ''
+
 now = dt.now()
 
+csv_file = r'database_local.csv'
 
-def write_csv(var1, var2, var3, var4, node):
-    with open(database_local.csv, 'w', newline='') as csvfile:
-        field = ['date', 'vibration', 'inclination', 'humidity', 'node']
-        variables = [['date', 'vibration', 'inclination', 'humidity', 'node'],
-                     [now.strftime("%d/%m/%Y %H:%M:%S"), var1, var2, var3, var4, node]]
-        write = csv.writer(csvfile, fieldnames=field)
-        write.writeheader()
-        write.writerows(variables)
+head_flag = 0
 
+def header_check(flag) :
+    if not csv_file:
+        flag = 0
+        return flag
+    else :
+        return 0
+
+def write_csv(flag ,var1, var2, var3, var4, node, stats):
+    with open(csv_file, 'a', newline='') as csvfile:
+        field = [['date', 'vibration', 'inclination', 'humidity', 'precipitation', 'node', 'status']]
+        variables = [[now.strftime("%d/%m/%Y %H:%M"), var1, var2, var3, var4, node, stats]]
+        write = csv.writer(csvfile)
+        if (flag == 0):
+            write.writerows(field)
+            flag = 1
+            return flag
+        else :
+            write.writerows(variables)
 
 def detail(path):
     buttons = [
@@ -70,6 +86,11 @@ def detail(path):
     ]
     return buttons
 
+def table_print():
+    print(f"|Node|Vibr|Inlc|Humd|Prec|")
+    print(f"|{id1}|{vibration1}|{inclination1}|{float(humidity1)/100}|{precipitation1}|")
+    print(f"|{id2}|{vibration2}|{inclination2}|{float(humidity2)/10}|{float(precipitation2)+98}|")
+    print(f"|{id3}|{vibration3}|{inclination3}|{float(humidity3)/10}|{float(precipitation3)+98}|\n")
 
 def sendNotif(path, nama, status, url_gambar, buttons):
     header = {
@@ -98,13 +119,14 @@ def sendNotif(path, nama, status, url_gambar, buttons):
 
 def predict():
     global awas1, siaga1, awas2, siaga2, awas3, siaga3
-    data_input = np.array([[float(vibration1), float(inclination1), (float(humidity1)/100), float(precipitation1)], [float(vibration2), float(inclination2),
-                          (float(humidity2)/100), float(precipitation2)], [float(vibration3), float(inclination3), (float(humidity3)/100), float(precipitation3)]])
+    data_input = np.array([[float(vibration1), float(inclination1), (float(humidity1)/100), float(precipitation1)],
+                           [float(vibration2), float(inclination2), (float(humidity2)/10), (float(precipitation2)+98)],
+                           [float(vibration3), float(inclination3), (float(humidity3)/10), (float(precipitation3)+98)]])
     probability = model.predict_proba(data_input)
     value1 = probability[0, 1]
     value2 = probability[1, 1]
     value3 = probability[2, 1]
-    print(f"Probabilitas 1 : {value1}  Probabilitas 2 : {value2}  Probabilitas 3 : {value3}")
+    print(f"Probabilitas 1 : {value1}\nProbabilitas 2 : {value2}\nProbabilitas 3 : {value3}\n")
     if value1 > 0.75 and value1 <= 1:
         status1 = "AWAS"
         if not awas1:
@@ -190,8 +212,9 @@ def predict():
         awas3 = False
         siaga3 = False
 
-    print(f"Status 1 : {status1}  Status 2 : {
-          status2}  Status 3 : {status3}  ")
+    print(f"Status 1 : {status1}  Status 2 : {status2}  Status 3 : {status3}")
+    
+    return status1, status2, status3
 
     data = {
         "titik1": {
@@ -254,7 +277,8 @@ try:
     while True:
         if ser.in_waiting > 0:
             dataSer = ser.readline().decode('utf-8').rstrip()
-            print(f"\nInput Serial : {dataSer}")
+            head_flag = header_check(head_flag)
+            #print(f"\nInput Serial : {dataSer}")
             dataSers = dataSer.split(';')
             dataSer1 = dataSers[0]
             dataSer1 = dataSer1.split(',')
@@ -267,22 +291,24 @@ try:
             inclination1 = dataSer1[2]
             humidity1 = dataSer1[3]
             precipitation1 = dataSer1[4]
-            write_csv(vibration1, inclination1, humidity1, precipitation1, id1)
+            head_flag = write_csv(head_flag, vibration1, inclination1, humidity1, precipitation1, id1, st1)
             id2 = dataSer2[0]
             vibration2 = dataSer2[1]
             inclination2 = dataSer2[2]
-            humidity2 = dataSer2[3]
-            precipitation2 = dataSer2[4]
-            write_csv(vibration2, inclination2, humidity2, precipitation2, id2)
+            humidity2 = dataSer2[4]
+            precipitation2 = dataSer2[3]
+            head_flag = write_csv(head_flag, vibration2, inclination2, humidity2, precipitation2, id2, st2)
             id3 = dataSer3[0]
             vibration3 = dataSer3[1]
             inclination3 = dataSer3[2]
-            humidity3 = dataSer3[3]
-            precipitation3 = dataSer3[4]
-            write_csv(vibration3, inclination3, humidity3, precipitation3, id3)
-            predict()
+            humidity3 = dataSer3[4]
+            precipitation3 = dataSer3[3]
+            head_flag = write_csv(head_flag, vibration3, inclination3, humidity3, precipitation3, id3, st3)
+            table_print()
+            st1,st2,st3 = predict()
 
 except KeyboardInterrupt:
     print("Dihentikan")
 finally:
     ser.close()
+
